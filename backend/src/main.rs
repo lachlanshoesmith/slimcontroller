@@ -55,7 +55,7 @@ async fn redirect_to_id(Path(path): Path<String>, State(state): State<Arc<AppSta
     match db_val {
         Value::Nil => StatusCode::NOT_FOUND.into_response(),
         _ => {
-            let url: String = String::from_redis_value(&db_val).unwrap();
+            let url = String::from_redis_value(&db_val).unwrap();
             Redirect::to(&url).into_response()
         }
     }
