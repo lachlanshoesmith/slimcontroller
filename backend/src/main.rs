@@ -50,22 +50,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 async fn redirect_to_id(Path(path): Path<String>, State(state): State<Arc<AppState>>) -> Response {
     let mut db_conn = state.db_conn.clone();
-    let db_val = db_conn.get(path).await.unwrap();
-
-    match db_val {
-        Value::Nil => StatusCode::NOT_FOUND.into_response(),
-        _ => {
-            let url = String::from_redis_value(&db_val).unwrap();
-            Redirect::to(&url).into_response()
-        }
+    match get_from_db(&path, &mut db_conn).await {
+        Some(url) => Redirect::to(&url).into_response(),
+        None => StatusCode::NOT_FOUND.into_response(),
     }
 }
 
 async fn get_from_db(key: &str, db_conn: &mut MultiplexedConnection) -> Option<String> {
-    match db_conn.get(key).await.unwrap() {
+    let db_val = db_conn.get(key).await.unwrap();
+    match db_val {
         Value::Nil => None,
-        Value::SimpleString(url) => Some(url),
-        _ => None,
+        _ => {
+            let val = String::from_redis_value(&db_val).unwrap();
+            Some(val)
+        }
     }
 }
 
