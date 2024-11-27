@@ -10,6 +10,8 @@ use axum::{
 use clap::Parser;
 use redis::{aio::MultiplexedConnection, AsyncCommands, FromRedisValue, Value};
 use serde::Deserialize;
+use tower::ServiceBuilder;
+use tower_http::cors::CorsLayer;
 
 #[derive(Parser)]
 struct Cli {
@@ -41,7 +43,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app = Router::new()
         .route("/:id", get(redirect_to_id))
         .route("/add", post(add_redirect))
-        .with_state(state);
+        .with_state(state)
+        .layer(ServiceBuilder::new().layer(CorsLayer::permissive()));
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{server_port}")).await?;
     axum::serve(listener, app).await?;
@@ -84,7 +87,7 @@ async fn add_redirect(
 
     match get_from_db(&id, &mut db_conn).await {
         Some(_) => (
-            StatusCode::NOT_FOUND,
+            StatusCode::CONFLICT,
             "Your proposed short URL is already in use.",
         )
             .into_response(),
