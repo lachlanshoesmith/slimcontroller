@@ -38,4 +38,6 @@ i recommend following the above docker instructions. don't forget to set the `--
 
 if you'd like, you can make individual set/delete operations require a password. just pass in the `--password <PASSWORD>` flag.
 
-you should provide an `--admin-password` when running slimcontroller. with this you can access the `/admin` panel. if you don't provide one, your admin password will be the same as your `--password`. if you provide neither, you will not be able to access the `/admin` panel at all.
+you should provide an `--admin-password` when running slimcontroller. if you don't provide one, your admin password will be the same as your `--password`. if you provide neither, you will not be able to access the `/admin` panel at all.
+
+so long as you have an admin password of _some_ variety, you can access the `/admin` panel.
