@@ -137,7 +137,7 @@ fn read_html_from_file(path: &str) -> String {
 
 async fn redirect_to_id(Path(path): Path<String>, State(state): State<Arc<AppState>>) -> Response {
     let mut db_conn = state.db_conn.clone();
-    match get_from_db(&path, &mut db_conn).await {
+    match get_from_db(format!("redir_{path}").as_str(), &mut db_conn).await {
         Some(url) => Redirect::to(&url).into_response(),
         None => StatusCode::NOT_FOUND.into_response(),
     }
