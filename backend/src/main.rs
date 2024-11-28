@@ -16,11 +16,15 @@ use tower_http::cors::CorsLayer;
 
 #[derive(Parser)]
 struct Cli {
+    #[arg(env)]
     server_port: u16,
-    #[arg(help = "If a port alone is provided, we will assume localhost:port.")]
+    #[arg(
+        env,
+        help = "If a port alone is provided, we will assume localhost:port."
+    )]
     redis_url: String,
 
-    #[arg(short, long, help = "Require this password to shorten new links")]
+    #[arg(env, short, long, help = "Require this password to shorten new links")]
     password: Option<String>,
 }
 
