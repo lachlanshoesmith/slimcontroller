@@ -1,6 +1,6 @@
 # slimcontroller
 
-a stupidly simple URL redirection solution
+a stupidly simple URL shortener. or lengthener. redirectioner.
 
 ## running
 
