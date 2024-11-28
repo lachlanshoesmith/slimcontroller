@@ -49,7 +49,6 @@ struct Cli {
 struct AppState {
     db_conn: MultiplexedConnection,
     password: Option<String>,
-    server_port: u16,
     server_hostname: String,
     frontend_index: String,
 }
@@ -92,7 +91,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
     let server_hostname = match cli.server_hostname {
         Some(hostname) => hostname,
-        None => "localhost".to_string(),
+        None => format!("http://localhost:{server_port}").to_string(),
     };
     let frontend_index = match cli.frontend_index {
         Some(index) => index,
@@ -103,7 +102,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let state = Arc::new(AppState {
         db_conn: db.get_multiplexed_async_connection().await?,
         password: cli.password,
-        server_port,
         server_hostname,
         frontend_index,
     });
@@ -126,11 +124,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 async fn index(State(state): State<Arc<AppState>>) -> Html<String> {
     let mut html = read_html_from_file(&state.frontend_index);
     let hostname = state.server_hostname.clone();
-    let server_port = state.server_port;
-    html = html.replace(
-        "BACKEND_URL_HERE",
-        &format!("http://{hostname}:{server_port}"),
-    );
+    html = html.replace("BACKEND_URL_HERE", &hostname);
     Html(html)
 }
 
@@ -205,7 +199,7 @@ fn check_password(
                 }
             }
             None => Err((
-                StatusCode::UNAUTHORIZED,
+                StatusCode::BAD_REQUEST,
                 Json(SimpleResponse {
                     message: "No password provided when one is required.".to_string(),
                 }),
