@@ -26,7 +26,9 @@ note that redis is not persistent by default, so all shorthands created will be 
 any of the following may be supplied as environment variables.
 
 - `SERVER_PORT` can be any `u16`
-- `REDIS_URL` might be `127.0.0.1:6379` if you ran the above command
+- `REDIS_URL` can be a URL (`String`) or port (`u16`)
+  - if just a port is provided, it's assumed your server's running locally
+  - a valid `REDIS_URL` might be `127.0.0.1:6379` if you ran [the above command](#running)
 
 you should specify an `--admin-password`. see [authentication](#authentication) for more information.
 
