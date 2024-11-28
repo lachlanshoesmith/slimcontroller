@@ -179,6 +179,9 @@ async fn index(State(state): State<Arc<AppState>>) -> Html<String> {
     let mut html = read_html_from_file(&state.frontend_index);
     let hostname = state.server_hostname.clone();
     html = html.replace("BACKEND_URL_HERE", &hostname);
+    if state.password.is_none() {
+        html = html.replace("id=\"authentication\"", "class=\"hidden\"");
+    }
     Html(html)
 }
 
