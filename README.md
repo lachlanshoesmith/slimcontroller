@@ -23,7 +23,7 @@ note that redis is not persistent by default, so all shorthands created will be 
 
 ## deployment
 
-i recommend following the above docker instructions. don't forget to set the `--server-hostname`.
+i recommend following the above docker instructions. don't forget to set the `--server-hostname` (may be an environment variable `SERVER_HOSTNAME`).
 
 ## authentication
 
