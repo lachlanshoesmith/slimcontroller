@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <script>
-  const BACKEND_URL = 'http://localhost:3005';
+  const BACKEND_URL = 'BACKEND_URL_HERE';
 </script>
 <html lang="en">
   <head>
@@ -48,7 +48,6 @@
       </p>
     </noscript>
   </body>
-  <link rel="stylesheet" href="styles.css" />
   <script>
     const form = document.getElementById('form');
     const password = document.getElementById('password');
@@ -117,4 +116,35 @@
       output.innerText = res_json.message;
     });
   </script>
+  <style>
+    html,
+    body {
+      margin: 0;
+    }
+
+    body {
+      background: black;
+      color: white;
+      padding: 64px;
+      font-family: sans-serif;
+    }
+
+    input[type='text'],
+    button,
+    input[type='password'] {
+      background: #222;
+      color: #dbdbdb;
+      border: none;
+      padding: 8px;
+    }
+
+    button:hover {
+      cursor: pointer;
+      background: #333;
+    }
+
+    #output {
+      display: none;
+    }
+  </style>
 </html>
