@@ -18,6 +18,11 @@
         <section>
           <h2>authentication 🔑</h2>
           <p>you need to log in to access this page.</p>
+          <p>
+            <strong>note:</strong> the password for this page may be different
+            to the one used to edit short links. contact your slimcontroller
+            instance's administrators for details.
+          </p>
           <form id="form">
             <input
               type="password"
@@ -28,9 +33,10 @@
             />
             <button type="submit">Submit</button>
           </form>
+          <p id="authentication-output"></p>
         </section>
       </div>
-      <div class="authenticated-content">
+      <div id="authenticated-content">
         <h2>all links 🔗</h2>
         <table id="redirects_table">
           <thead>
@@ -101,7 +107,15 @@
         }
       );
 
+      if (!res.ok) {
+        const output = document.getElementById('authentication-output');
+        output.style.display = 'block';
+        output.innerText = 'invalid password';
+        return;
+      }
+
       const redirects = await res.json();
+
       for (const redirect of redirects) {
         const row = createAndAppend('tr', redirects_table);
         createAndAppend('td', row, redirect.id);
@@ -111,6 +125,13 @@
         const deleteButton = createAndAppend('button', deleteCell, '❌');
         deleteButton.onclick = deleteRedirect(redirect.id, redirect.key, row);
       }
+
+      const authentication = document.getElementById('authentication');
+      authentication.style.display = 'none';
+      const authenticatedContent = document.getElementById(
+        'authenticated-content'
+      );
+      authenticatedContent.style.display = 'block';
     });
   </script>
   <style>
@@ -179,6 +200,7 @@
     p {
       font-size: 0.7rem;
       color: grey;
+      max-width: 400px;
     }
 
     a {
@@ -199,6 +221,10 @@
 
     tr:nth-child(odd) {
       background: #222;
+    }
+
+    #authenticated-content {
+      display: none;
     }
   </style>
 </html>
