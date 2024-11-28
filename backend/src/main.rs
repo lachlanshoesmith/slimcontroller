@@ -17,11 +17,16 @@ use tower_http::cors::CorsLayer;
 #[derive(Parser)]
 struct Cli {
     server_port: u16,
+    #[arg(help = "If a port alone is provided, we will assume localhost:port.")]
     redis_url: String,
+
+    #[arg(short, long, help = "Require this password to shorten new links")]
+    password: Option<String>,
 }
 
 struct AppState {
     db_conn: MultiplexedConnection,
+    password: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -29,12 +34,15 @@ struct AddRedirectBody {
     #[serde(default)]
     id: Option<String>,
     url: String,
+    #[serde(default)]
+    password: Option<String>,
 }
 
 #[derive(Deserialize)]
 struct DeleteRedirectBody {
     id: String,
     key: String,
+    password: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -54,16 +62,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
     let server_port = cli.server_port;
     let redis_url = match cli.redis_url.parse::<u16>() {
-        Ok(port) => {
-            println!("Warning: redis_url is a port, assuming localhost");
-            format!("127.0.0.1:{port}")
-        }
+        Ok(port) => format!("127.0.0.1:{port}"),
         Err(_) => cli.redis_url,
     };
 
     let db = redis::Client::open(format!("redis://{redis_url}"))?;
     let state = Arc::new(AppState {
         db_conn: db.get_multiplexed_async_connection().await?,
+        password: cli.password,
     });
 
     let app = Router::new()
@@ -87,7 +93,7 @@ async fn redirect_to_id(Path(path): Path<String>, State(state): State<Arc<AppSta
 }
 
 async fn get_from_db(key: &str, db_conn: &mut MultiplexedConnection) -> Option<String> {
-    let db_val = db_conn.get(key).await.unwrap();
+    let db_val = db_conn.get(format!("redir_{key}")).await.unwrap();
     match db_val {
         Value::Nil => None,
         _ => {
@@ -111,8 +117,43 @@ async fn generate_random_id(db_conn: &mut MultiplexedConnection) -> String {
     loop {
         let id: String = generate_random_string();
 
-        if get_from_db(&id, &mut db_conn).await.is_none() {
+        if get_from_db(format!("redir_{id}").as_str(), &mut db_conn)
+            .await
+            .is_none()
+        {
             return id;
+        }
+    }
+}
+
+fn check_password(
+    password: Option<String>,
+    provided_password: Option<String>,
+) -> Result<(), Response> {
+    if password.is_none() {
+        Ok(())
+    } else {
+        match provided_password {
+            Some(provided_password) => {
+                if password.unwrap() == provided_password {
+                    Ok(())
+                } else {
+                    Err((
+                        StatusCode::UNAUTHORIZED,
+                        Json(SimpleResponse {
+                            message: "Password incorrect.".to_string(),
+                        }),
+                    )
+                        .into_response())
+                }
+            }
+            None => Err((
+                StatusCode::UNAUTHORIZED,
+                Json(SimpleResponse {
+                    message: "No password provided when one is required.".to_string(),
+                }),
+            )
+                .into_response()),
         }
     }
 }
@@ -121,6 +162,10 @@ async fn add_redirect(
     State(state): State<Arc<AppState>>,
     Json(body): Json<AddRedirectBody>,
 ) -> Response {
+    if let Err(e) = check_password(state.password.clone(), body.password) {
+        return e;
+    }
+
     let mut db_conn = state.db_conn.clone();
 
     let id = match body.id {
@@ -132,7 +177,7 @@ async fn add_redirect(
         return (StatusCode::BAD_REQUEST, "Sorry, /add is reserved!").into_response();
     }
 
-    match get_from_db(&id, &mut db_conn).await {
+    match get_from_db(format!("redir_{id}").as_str(), &mut db_conn).await {
         Some(_) => (
             StatusCode::CONFLICT,
             Json(SimpleResponse {
@@ -141,7 +186,7 @@ async fn add_redirect(
         )
             .into_response(),
         None => match db_conn
-            .set::<String, String, Value>(id.clone(), body.url)
+            .set::<String, String, Value>(format!("redir_{id}"), body.url)
             .await
         {
             Ok(_) => {
@@ -167,10 +212,14 @@ async fn delete_redirect(
     State(state): State<Arc<AppState>>,
     Json(body): Json<DeleteRedirectBody>,
 ) -> Response {
+    if let Err(e) = check_password(state.password.clone(), body.password) {
+        return e;
+    }
+
     let mut db_conn = state.db_conn.clone();
     let id = body.id;
     let provided_key = body.key;
-    match get_from_db(&id, &mut db_conn).await {
+    match get_from_db(format!("redir_{id}").as_str(), &mut db_conn).await {
         Some(_) => match get_from_db(&format!("key_{id}"), &mut db_conn).await {
             Some(key) => {
                 if key != provided_key {
@@ -186,7 +235,10 @@ async fn delete_redirect(
                         .del::<String, Value>(format!("key_{id}"))
                         .await
                         .unwrap();
-                    db_conn.del::<String, Value>(id).await.unwrap();
+                    db_conn
+                        .del::<String, Value>(format!("redir_{id}"))
+                        .await
+                        .unwrap();
                     (
                         StatusCode::OK,
                         Json(SimpleResponse {

@@ -11,7 +11,8 @@ body {
 }
 
 input[type='text'],
-button {
+button,
+input[type='password'] {
   background: #222;
   color: #dbdbdb;
   border: none;

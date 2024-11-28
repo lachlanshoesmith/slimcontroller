@@ -28,6 +28,19 @@
       </form>
       <p id="delete-output"></p>
     </section>
+    <section>
+      <h2>authentication</h2>
+      <p>
+        some slimcontroller instances require a password to perform the above
+        operations.
+      </p>
+      <input
+        type="password"
+        name="password"
+        placeholder="Password"
+        id="password"
+      />
+    </section>
     <noscript>
       <p>
         ⚠️ Please enable JavaScript! Sorry, I'll remove this necessity at some
@@ -38,6 +51,7 @@
   <link rel="stylesheet" href="styles.css" />
   <script>
     const form = document.getElementById('form');
+    const password = document.getElementById('password');
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.target;
@@ -48,12 +62,18 @@
         id = null;
       }
 
+      let password_val = password.value;
+
+      if (password_val === '') {
+        password_val = null;
+      }
+
       const res = await fetch(`${BACKEND_URL}/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url, id }),
+        body: JSON.stringify({ url, id, password: password_val }),
       });
 
       const res_json = await res.json();
@@ -76,12 +96,18 @@
       const id = form.id.value;
       const key = form.key.value;
 
+      let password_val = password.value;
+
+      if (password_val === '') {
+        password_val = null;
+      }
+
       const res = await fetch(`${BACKEND_URL}/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id, key }),
+        body: JSON.stringify({ id, key, password: password_val }),
       });
 
       const res_json = await res.json();
