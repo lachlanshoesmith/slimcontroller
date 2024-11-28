@@ -38,12 +38,27 @@ struct Cli {
 
     #[arg(
         env,
-        short,
         long,
         help = "The index.html you want to serve. Defaults to ./index.html.",
-        name = "FILE_PATH"
+        name = "INDEX_PATH"
     )]
-    frontend_index: Option<String>,
+    index: Option<String>,
+
+    #[arg(
+        env,
+        long,
+        help = "The admin.html you want to serve. Defaults to ./admin.html.",
+        name = "ADMIN_PATH"
+    )]
+    admin: Option<String>,
+
+    #[arg(
+        env,
+        short,
+        long,
+        help = "The password for the admin page. Defaults to --password if it is set, otherwise None."
+    )]
+    admin_password: Option<String>,
 }
 
 struct AppState {
@@ -51,6 +66,8 @@ struct AppState {
     password: Option<String>,
     server_hostname: String,
     frontend_index: String,
+    frontend_admin: String,
+    admin_password: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -117,17 +134,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Some(hostname) => hostname,
         None => format!("http://localhost:{server_port}").to_string(),
     };
-    let frontend_index = match cli.frontend_index {
+    let frontend_index = match cli.index {
         Some(index) => index,
         None => "index.html".to_string(),
+    };
+    let frontend_admin = match cli.admin {
+        Some(index) => index,
+        None => "admin.html".to_string(),
+    };
+    let password = cli.password;
+    let admin_password = match cli.admin_password {
+        Some(admin_password) => Some(admin_password),
+        None => password.clone(),
     };
 
     let db = redis::Client::open(format!("redis://{redis_url}"))?;
     let state = Arc::new(AppState {
         db_conn: db.get_multiplexed_async_connection().await?,
-        password: cli.password,
+        password,
         server_hostname,
         frontend_index,
+        frontend_admin,
+        admin_password,
     });
 
     let app = Router::new()
@@ -154,11 +182,14 @@ async fn index(State(state): State<Arc<AppState>>) -> Html<String> {
     Html(html)
 }
 
-async fn admin(State(state): State<Arc<AppState>>) -> Html<String> {
-    let mut html = read_html_from_file("admin.html");
+async fn admin(State(state): State<Arc<AppState>>) -> Response {
+    if state.admin_password.is_none() {
+        return StatusCode::UNAUTHORIZED.into_response();
+    }
+    let mut html = read_html_from_file(&state.frontend_admin);
     let hostname = state.server_hostname.clone();
     html = html.replace("BACKEND_URL_HERE", &hostname);
-    Html(html)
+    Html(html).into_response()
 }
 
 fn read_html_from_file(path: &str) -> String {
@@ -313,8 +344,8 @@ async fn get_all_redirects(
 ) -> Response {
     let mut db_conn = state.db_conn.clone();
     let password: String = query.password.clone();
-    if let Err(e) = check_password(state.password.clone(), Some(password)) {
-        return e;
+    if state.admin_password.is_none() || password != state.admin_password.clone().unwrap() {
+        return StatusCode::UNAUTHORIZED.into_response();
     }
 
     return match db_conn.smembers::<&str, Value>("redirs").await.unwrap() {
