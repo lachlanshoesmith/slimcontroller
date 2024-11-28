@@ -10,14 +10,14 @@ use axum::{
 };
 use clap::Parser;
 use redis::{aio::MultiplexedConnection, AsyncCommands, FromRedisValue, Value};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 
 #[derive(Parser)]
 struct Cli {
     server_port: u16,
-    redis_port: u16,
+    redis_url: String,
 }
 
 struct AppState {
@@ -31,13 +31,31 @@ struct AddRedirectBody {
     url: String,
 }
 
+#[derive(Serialize)]
+struct AddResponse {
+    id: String,
+    // key is used for editing redirects
+    key: String,
+}
+
+#[derive(Serialize)]
+struct SimpleResponse {
+    message: String,
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
     let server_port = cli.server_port;
-    let redis_port = cli.redis_port;
+    let redis_url = match cli.redis_url.parse::<u16>() {
+        Ok(port) => {
+            println!("Warning: redis_url is a port, assuming localhost");
+            format!("127.0.0.1:{port}")
+        }
+        Err(_) => cli.redis_url,
+    };
 
-    let db = redis::Client::open(format!("redis://127.0.0.1:{redis_port}"))?;
+    let db = redis::Client::open(format!("redis://{redis_url}"))?;
     let state = Arc::new(AppState {
         db_conn: db.get_multiplexed_async_connection().await?,
     });
@@ -72,15 +90,19 @@ async fn get_from_db(key: &str, db_conn: &mut MultiplexedConnection) -> Option<S
     }
 }
 
-async fn generate_random_string(db_conn: &mut MultiplexedConnection) -> String {
+fn generate_random_string() -> String {
+    thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(10)
+        .map(char::from)
+        .collect()
+}
+
+async fn generate_random_id(db_conn: &mut MultiplexedConnection) -> String {
     let mut db_conn = db_conn.clone();
 
     loop {
-        let id: String = thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(30)
-            .map(char::from)
-            .collect();
+        let id: String = generate_random_string();
 
         if get_from_db(&id, &mut db_conn).await.is_none() {
             return id;
@@ -96,7 +118,7 @@ async fn add_redirect(
 
     let id = match body.id {
         Some(id) => id,
-        None => generate_random_string(&mut db_conn).await,
+        None => generate_random_id(&mut db_conn).await,
     };
 
     if id == "add" {
@@ -106,15 +128,30 @@ async fn add_redirect(
     match get_from_db(&id, &mut db_conn).await {
         Some(_) => (
             StatusCode::CONFLICT,
-            "Your proposed short URL is already in use.",
+            Json(SimpleResponse {
+                message: "Your proposed short URL is already in use".to_string(),
+            }),
         )
             .into_response(),
         None => match db_conn
             .set::<String, String, Value>(id.clone(), body.url)
             .await
         {
-            Ok(_) => (StatusCode::CREATED, id).into_response(),
-            Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            Ok(_) => {
+                let key = generate_random_string();
+                db_conn
+                    .set::<String, String, Value>(format!("key_{id}"), key.clone())
+                    .await
+                    .unwrap();
+                (StatusCode::CREATED, Json(AddResponse { id, key })).into_response()
+            }
+            Err(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(SimpleResponse {
+                    message: "Internal server error!".to_string(),
+                }),
+            )
+                .into_response(),
         },
     }
 }

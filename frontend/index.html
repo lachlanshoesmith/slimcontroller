@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<script>
+  const BACKEND_URL = 'http://localhost:3005';
+</script>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -7,12 +10,24 @@
   </head>
   <body>
     <h1>slimcontroller</h1>
-    <form id="form">
-      <input type="text" name="url" placeholder="URL" required />
-      <input type="text" name="id" placeholder="ID" />
-      <button type="submit">Submit</button>
-    </form>
-    <p id="output"></p>
+    <section>
+      <h2>create short links</h2>
+      <form id="form">
+        <input type="text" name="url" placeholder="URL" required />
+        <input type="text" name="id" placeholder="ID" />
+        <button type="submit">Submit</button>
+      </form>
+      <p id="output"></p>
+    </section>
+    <section>
+      <h2>delete a short link</h2>
+      <form id="delete-form">
+        <input type="text" name="id" placeholder="ID" required />
+        <input type="text" name="key" placeholder="Key" required />
+        <button type="submit">Submit</button>
+      </form>
+      <p id="delete-output"></p>
+    </section>
     <noscript>
       <p>
         ⚠️ Please enable JavaScript! Sorry, I'll remove this necessity at some
@@ -33,7 +48,7 @@
         id = null;
       }
 
-      const res = await fetch('http://localhost:3005/add', {
+      const res = await fetch(`${BACKEND_URL}/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -41,14 +56,15 @@
         body: JSON.stringify({ url, id }),
       });
 
-      const res_text = await res.text();
+      const res_json = await res.json();
 
       const output = document.getElementById('output');
       output.style.display = 'block';
-      output.innerText = res_text;
+      output.innerText = res_json;
 
       if (res.status === 201) {
-        output.innerText = 'Created! ' + res_text;
+        output.innerText = `Created! Your URL is ${BACKEND_URL}/${res_json.id}.
+Save this key somewhere if you think you might want to delete this redirection later: ${res_json.key}`;
       }
     });
   </script>
