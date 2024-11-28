@@ -13,3 +13,7 @@ to run the backend, you'll need to have a redis server running somewhere. spinni
 note that redis is not persistent by default, so all shorthands created will be wiped when the server is restarted. it's up to you on how you handle this. [more info here](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/)
 
 then, `cargo build --release`, and run `./target/release/slimcontroller <SERVER_PORT> <REDIS_URL>`, where `SERVER_PORT` can be any `u8`, and `REDIS_URL` might be `127.0.0.1:6379` if you ran the above command.
+
+## authentication
+
+if you'd like, you can make set/delete operations require a password. just pass in the `--password <PASSWORD>` flag.
