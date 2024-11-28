@@ -40,7 +40,7 @@ struct Cli {
         env,
         long,
         help = "The index.html you want to serve. Defaults to ./index.html.",
-        name = "INDEX_PATH"
+        name = "INDEX_HTML_PATH"
     )]
     index: Option<String>,
 
@@ -48,7 +48,7 @@ struct Cli {
         env,
         long,
         help = "The admin.html you want to serve. Defaults to ./admin.html.",
-        name = "ADMIN_PATH"
+        name = "ADMIN_HTML_PATH"
     )]
     admin: Option<String>,
 

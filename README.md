@@ -13,13 +13,13 @@ note that redis is not persistent by default, so all shorthands created will be 
 ### docker
 
 1. `docker build -t slimcontroller .`
-2. `docker run -p <SERVER_PORT>:<SERVER_PORT> -e PASSWORD=<PASSWORD> -e REDIS_URL=<REDIS_URL> -e ADMIN_PASSWORD=<ADMIN_PASSWORD> slimcontroller`
+2. `docker run -p <SERVER_PORT>:<SERVER_PORT> -e REDIS_URL=<REDIS_URL> slimcontroller`
 
 ### from source
 
 1. `cargo build --release`
 2. `./target/release/slimcontroller <SERVER_PORT> <REDIS_URL>`
-3. the frontend can then be accessed via `localhost:SERVER_PORT`. if you want to host a different `index.html`, or it's in a different location, use the `-f <FILE_PATH>` flag.
+3. the frontend can then be accessed via `localhost:SERVER_PORT`. if you want to host a different `index.html`, or it's in a different location, use the `--index <FILE_PATH>` flag. the same may be said for `--admin`.
 
 ### mandatory arguments
 
