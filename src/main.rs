@@ -31,7 +31,7 @@ struct Cli {
         env,
         short,
         long,
-        help = "The hostname of the server. Defaults to localhost.",
+        help = "The hostname of the server; ignore if using localhost.",
         name = "URL"
     )]
     server_hostname: Option<String>,
