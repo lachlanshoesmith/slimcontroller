@@ -5,7 +5,7 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
     response::{IntoResponse, Redirect, Response},
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 use clap::Parser;
@@ -29,6 +29,12 @@ struct AddRedirectBody {
     #[serde(default)]
     id: Option<String>,
     url: String,
+}
+
+#[derive(Deserialize)]
+struct DeleteRedirectBody {
+    id: String,
+    key: String,
 }
 
 #[derive(Serialize)]
@@ -63,6 +69,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app = Router::new()
         .route("/:id", get(redirect_to_id))
         .route("/add", post(add_redirect))
+        .route("/:id", delete(delete_redirect))
         .with_state(state)
         .layer(ServiceBuilder::new().layer(CorsLayer::permissive()));
 
@@ -153,5 +160,56 @@ async fn add_redirect(
             )
                 .into_response(),
         },
+    }
+}
+
+async fn delete_redirect(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<DeleteRedirectBody>,
+) -> Response {
+    let mut db_conn = state.db_conn.clone();
+    let id = body.id;
+    let provided_key = body.key;
+    match get_from_db(&id, &mut db_conn).await {
+        Some(_) => match get_from_db(&format!("key_{id}"), &mut db_conn).await {
+            Some(key) => {
+                if key != provided_key {
+                    (
+                        StatusCode::UNAUTHORIZED,
+                        Json(SimpleResponse {
+                            message: "Invalid key provided.".to_string(),
+                        }),
+                    )
+                        .into_response()
+                } else {
+                    db_conn
+                        .del::<String, Value>(format!("key_{id}"))
+                        .await
+                        .unwrap();
+                    db_conn.del::<String, Value>(id).await.unwrap();
+                    (
+                        StatusCode::OK,
+                        Json(SimpleResponse {
+                            message: "Short URL removed".to_string(),
+                        }),
+                    )
+                        .into_response()
+                }
+            }
+            None => (
+                StatusCode::NOT_FOUND,
+                Json(SimpleResponse {
+                    message: "No key is associated with this short URL".to_string(),
+                }),
+            )
+                .into_response(),
+        },
+        None => (
+            StatusCode::NOT_FOUND,
+            Json(SimpleResponse {
+                message: "Short URL not found".to_string(),
+            }),
+        )
+            .into_response(),
     }
 }

@@ -60,12 +60,35 @@
 
       const output = document.getElementById('output');
       output.style.display = 'block';
-      output.innerText = res_json;
 
       if (res.status === 201) {
         output.innerText = `Created! Your URL is ${BACKEND_URL}/${res_json.id}.
-Save this key somewhere if you think you might want to delete this redirection later: ${res_json.key}`;
+    Save this key somewhere if you think you might want to delete this redirection later: ${res_json.key}`;
+      } else {
+        output.innerText = res_json.message;
       }
+    });
+
+    const deleteForm = document.getElementById('delete-form');
+    deleteForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const id = form.id.value;
+      const key = form.key.value;
+
+      const res = await fetch(`${BACKEND_URL}/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, key }),
+      });
+
+      const res_json = await res.json();
+
+      const output = document.getElementById('delete-output');
+      output.style.display = 'block';
+      output.innerText = res_json.message;
     });
   </script>
 </html>
