@@ -3,7 +3,7 @@ use std::{error::Error, fs::File, io::Read, sync::Arc};
 
 use axum::{
     extract::{Json, Path, State},
-    http::StatusCode,
+    http::{HeaderValue, StatusCode},
     response::{Html, IntoResponse, Redirect, Response},
     routing::{delete, get, post},
     Router,
@@ -31,6 +31,15 @@ struct Cli {
         env,
         short,
         long,
+        help = "The hostname of the server. Defaults to localhost.",
+        name = "URL"
+    )]
+    server_hostname: Option<String>,
+
+    #[arg(
+        env,
+        short,
+        long,
         help = "The index.html you want to serve. Defaults to ./index.html.",
         name = "FILE_PATH"
     )]
@@ -41,6 +50,7 @@ struct AppState {
     db_conn: MultiplexedConnection,
     password: Option<String>,
     server_port: u16,
+    server_hostname: String,
     frontend_index: String,
 }
 
@@ -80,6 +90,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Ok(port) => format!("127.0.0.1:{port}"),
         Err(_) => cli.redis_url,
     };
+    let server_hostname = match cli.server_hostname {
+        Some(hostname) => hostname,
+        None => "localhost".to_string(),
+    };
     let frontend_index = match cli.frontend_index {
         Some(index) => index,
         None => "index.html".to_string(),
@@ -90,6 +104,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         db_conn: db.get_multiplexed_async_connection().await?,
         password: cli.password,
         server_port,
+        server_hostname,
         frontend_index,
     });
 
@@ -99,7 +114,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .route("/add", post(add_redirect))
         .route("/:id", delete(delete_redirect))
         .with_state(state)
-        .layer(ServiceBuilder::new().layer(CorsLayer::permissive()));
+        .layer(ServiceBuilder::new().layer(
+            CorsLayer::new().allow_origin("{server_hostname}".parse::<HeaderValue>().unwrap()),
+        ));
 
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{server_port}")).await?;
     axum::serve(listener, app).await?;
@@ -108,10 +125,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 async fn index(State(state): State<Arc<AppState>>) -> Html<String> {
     let mut html = read_html_from_file(&state.frontend_index);
+    let hostname = state.server_hostname.clone();
     let server_port = state.server_port;
     html = html.replace(
         "BACKEND_URL_HERE",
-        &format!("http://localhost:{server_port}"),
+        &format!("http://{hostname}:{server_port}"),
     );
     Html(html)
 }

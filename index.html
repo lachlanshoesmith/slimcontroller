@@ -6,12 +6,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>slimcontroller 🧙</title>
+    <title>slimcontroller</title>
   </head>
   <body>
-    <h1>slimcontroller</h1>
+    <h1>slimcontroller 🧙</h1>
     <section>
-      <h2>create a short link</h2>
+      <h2>create a short link 🔗</h2>
       <form id="form">
         <input type="text" name="url" placeholder="URL" required />
         <input type="text" name="id" placeholder="ID" />
@@ -20,7 +20,7 @@
       <p id="output"></p>
     </section>
     <section>
-      <h2>delete a short link</h2>
+      <h2>delete a short link 🗑️</h2>
       <form id="delete-form">
         <input type="text" name="id" placeholder="ID" required />
         <input type="text" name="key" placeholder="Key" required />
@@ -29,7 +29,7 @@
       <p id="delete-output"></p>
     </section>
     <section>
-      <h2>authentication</h2>
+      <h2>authentication 🔑</h2>
       <p>
         some slimcontroller instances require a password to perform the above
         operations.
@@ -82,7 +82,7 @@
 
       if (res.status === 201) {
         output.innerText = `Created! Your URL is ${BACKEND_URL}/${res_json.id}.
-    Save this key somewhere if you think you might want to delete this redirection later: ${res_json.key}`;
+    You'll need this key to delete this short link: ${res_json.key}`;
       } else {
         output.innerText = res_json.message;
       }
