@@ -150,7 +150,7 @@ async fn redirect_to_id(Path(path): Path<String>, State(state): State<Arc<AppSta
 }
 
 async fn get_from_db(key: &str, db_conn: &mut MultiplexedConnection) -> Option<String> {
-    let db_val = db_conn.get(format!("redir_{key}")).await.unwrap();
+    let db_val = db_conn.get(key).await.unwrap();
     match db_val {
         Value::Nil => None,
         _ => {
