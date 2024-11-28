@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<script>
+  const BACKEND_URL = 'BACKEND_URL_HERE';
+</script>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>slimcontroller</title>
+  </head>
+  <body>
+    <header>
+      <h1>slimcontroller 🧙</h1>
+      <h2>admin panel</h2>
+    </header>
+    <main>
+      <div id="authentication">
+        <section>
+          <h2>authentication 🔑</h2>
+          <p>you need to log in to access this page.</p>
+          <form id="form">
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              required
+              id="password"
+            />
+            <button type="submit">Submit</button>
+          </form>
+        </section>
+      </div>
+      <div class="authenticated-content">
+        <h2>all links 🔗</h2>
+        <table id="redirects_table">
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>points to</th>
+              <th>key</th>
+              <th>delete</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <noscript>
+        <p>⚠️ Please enable JavaScript!</p>
+      </noscript>
+    </main>
+    <footer>
+      <p>by <a href="https://lachlan.codes">Lachlan Shoesmith</a></p>
+      <p>
+        slimcontroller is on
+        <a href="https://github.com/lachlanshoesmith/slimcontroller">github</a>!
+      </p>
+    </footer>
+  </body>
+  <script>
+    const form = document.getElementById('form');
+    const password = document.getElementById('password');
+    const redirects_table = document.getElementById('redirects_table');
+
+    const createAndAppend = (tag, parent, text) => {
+      const element = document.createElement(tag);
+      if (text) {
+        element.innerText = text;
+      }
+      parent.appendChild(element);
+      return element;
+    };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      let password_val = password.value;
+
+      const res = await fetch(
+        `${BACKEND_URL}/all?` +
+          new URLSearchParams({
+            password: password_val,
+          }),
+        {
+          method: 'GET',
+        }
+      );
+
+      const redirects = await res.json();
+      for (const redirect of redirects) {
+        const row = createAndAppend('tr', redirects_table);
+        createAndAppend('td', row, redirect.id);
+        createAndAppend('td', row, redirect.url);
+        createAndAppend('td', row, redirect.key);
+      }
+    });
+  </script>
+  <style>
+    html,
+    body {
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: black;
+      color: white;
+      font-family: sans-serif;
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+    }
+
+    form {
+      padding-top: 16px;
+    }
+
+    section {
+      padding-bottom: 32px;
+    }
+
+    input[type='text'],
+    button,
+    input[type='password'] {
+      background: #222;
+      color: #dbdbdb;
+      border: none;
+      padding: 8px;
+    }
+
+    button:hover {
+      cursor: pointer;
+      background: #333;
+    }
+
+    #output {
+      display: none;
+    }
+
+    header,
+    footer {
+      height: calc(10vh - 32px);
+    }
+
+    main {
+      height: calc(80vh - 32px);
+    }
+
+    header,
+    main,
+    footer {
+      padding: 16px;
+    }
+
+    p {
+      font-size: 0.7rem;
+      color: grey;
+    }
+
+    a {
+      color: #dbdbdb;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin-top: 16px;
+      max-height: 50vh;
+      overflow-y: auto;
+    }
+
+    th,
+    td {
+      padding: 16px 32px 16px 32px;
+    }
+
+    tr:nth-child(odd) {
+      background: #222;
+    }
+  </style>
+</html>

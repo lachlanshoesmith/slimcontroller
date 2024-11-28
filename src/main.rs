@@ -2,14 +2,14 @@ use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use std::{error::Error, fs::File, io::Read, sync::Arc};
 
 use axum::{
-    extract::{Json, Path, State},
+    extract::{Json, Path, Query, State},
     http::{HeaderValue, StatusCode},
-    response::{Html, IntoResponse, Redirect, Response},
+    response::{Html, IntoResponse, Response},
     routing::{delete, get, post},
     Router,
 };
 use clap::Parser;
-use redis::{aio::MultiplexedConnection, AsyncCommands, FromRedisValue, Value};
+use redis::{aio::MultiplexedConnection, from_redis_value, AsyncCommands, FromRedisValue, Value};
 use serde::{Deserialize, Serialize};
 use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
@@ -69,6 +69,11 @@ struct DeleteRedirectBody {
     password: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct AuthenticatedQuery {
+    password: String,
+}
+
 #[derive(Serialize)]
 struct AddResponse {
     id: String,
@@ -79,6 +84,25 @@ struct AddResponse {
 #[derive(Serialize)]
 struct SimpleResponse {
     message: String,
+}
+
+#[derive(Serialize)]
+struct Redirect {
+    id: String,
+    url: String,
+    key: String,
+}
+
+impl FromRedisValue for Redirect {
+    fn from_redis_value(v: &Value) -> redis::RedisResult<Self> {
+        let redirect_string = String::from_redis_value(v)?;
+        let parts: Vec<&str> = redirect_string.split('🧙').collect();
+        Ok(Redirect {
+            id: parts[0].to_string(),
+            url: parts[1].to_string(),
+            key: parts[2].to_string(),
+        })
+    }
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -108,8 +132,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app = Router::new()
         .route("/", get(index))
+        .route("/admin", get(admin))
         .route("/:id", get(redirect_to_id))
         .route("/add", post(add_redirect))
+        .route("/all", get(get_all_redirects))
         .route("/:id", delete(delete_redirect))
         .with_state(state)
         .layer(ServiceBuilder::new().layer(
@@ -128,6 +154,13 @@ async fn index(State(state): State<Arc<AppState>>) -> Html<String> {
     Html(html)
 }
 
+async fn admin(State(state): State<Arc<AppState>>) -> Html<String> {
+    let mut html = read_html_from_file("admin.html");
+    let hostname = state.server_hostname.clone();
+    html = html.replace("BACKEND_URL_HERE", &hostname);
+    Html(html)
+}
+
 fn read_html_from_file(path: &str) -> String {
     let mut file = File::open(path).unwrap();
     let mut contents = String::new();
@@ -138,7 +171,7 @@ fn read_html_from_file(path: &str) -> String {
 async fn redirect_to_id(Path(path): Path<String>, State(state): State<Arc<AppState>>) -> Response {
     let mut db_conn = state.db_conn.clone();
     match get_from_db(format!("redir_{path}").as_str(), &mut db_conn).await {
-        Some(url) => Redirect::to(&url).into_response(),
+        Some(url) => axum::response::Redirect::to(&url).into_response(),
         None => StatusCode::NOT_FOUND.into_response(),
     }
 }
@@ -223,9 +256,19 @@ async fn add_redirect(
         Some(id) => id,
         None => generate_random_id(&mut db_conn).await,
     };
+    let url = body.url;
 
-    if id == "add" {
-        return (StatusCode::BAD_REQUEST, "Sorry, /add is reserved!").into_response();
+    let reserved_ids = ["add", "all"];
+    if reserved_ids.contains(&id.as_str()) {
+        return (
+            StatusCode::BAD_REQUEST,
+            format!("Sorry, /{id} is reserved!"),
+        )
+            .into_response();
+    }
+
+    if id.contains("🧙") {
+        return (StatusCode::BAD_REQUEST, "🧙 is reserved... sorry...").into_response();
     }
 
     match get_from_db(format!("redir_{id}").as_str(), &mut db_conn).await {
@@ -237,13 +280,18 @@ async fn add_redirect(
         )
             .into_response(),
         None => match db_conn
-            .set::<String, String, Value>(format!("redir_{id}"), body.url)
+            .set::<String, String, Value>(format!("redir_{id}"), url.clone())
             .await
         {
             Ok(_) => {
                 let key = generate_random_string();
                 db_conn
                     .set::<String, String, Value>(format!("key_{id}"), key.clone())
+                    .await
+                    .unwrap();
+                db_conn
+                    // WSV - wizard separated values
+                    .sadd::<&str, String, Value>("redirs", format!("{id}🧙{url}🧙{key}"))
                     .await
                     .unwrap();
                 (StatusCode::CREATED, Json(AddResponse { id, key })).into_response()
@@ -259,6 +307,41 @@ async fn add_redirect(
     }
 }
 
+async fn get_all_redirects(
+    State(state): State<Arc<AppState>>,
+    query: Query<AuthenticatedQuery>,
+) -> Response {
+    let mut db_conn = state.db_conn.clone();
+    let password: String = query.password.clone();
+    if let Err(e) = check_password(state.password.clone(), Some(password)) {
+        return e;
+    }
+
+    return match db_conn.smembers::<&str, Value>("redirs").await.unwrap() {
+        Value::Array(redirects) => {
+            let redirects: Vec<Redirect> = redirects
+                .iter()
+                .map(|r| from_redis_value(r).unwrap())
+                .collect();
+            (StatusCode::OK, Json(redirects)).into_response()
+        }
+        Value::Nil => (
+            StatusCode::NOT_FOUND,
+            Json(SimpleResponse {
+                message: "No redirects found.".to_string(),
+            }),
+        )
+            .into_response(),
+        val => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(SimpleResponse {
+                message: format!("Got {val:?}, expected an Array or Nil"),
+            }),
+        )
+            .into_response(),
+    };
+}
+
 async fn delete_redirect(
     State(state): State<Arc<AppState>>,
     Json(body): Json<DeleteRedirectBody>,
@@ -271,7 +354,7 @@ async fn delete_redirect(
     let id = body.id;
     let provided_key = body.key;
     match get_from_db(format!("redir_{id}").as_str(), &mut db_conn).await {
-        Some(_) => match get_from_db(&format!("key_{id}"), &mut db_conn).await {
+        Some(url) => match get_from_db(&format!("key_{id}"), &mut db_conn).await {
             Some(key) => {
                 if key != provided_key {
                     (
@@ -288,6 +371,10 @@ async fn delete_redirect(
                         .unwrap();
                     db_conn
                         .del::<String, Value>(format!("redir_{id}"))
+                        .await
+                        .unwrap();
+                    db_conn
+                        .srem::<&str, String, Value>("redirs", format!("{id}🧙{url}🧙{key}"))
                         .await
                         .unwrap();
                     (
