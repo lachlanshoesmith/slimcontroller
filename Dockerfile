@@ -18,6 +18,7 @@ FROM debian:bookworm-slim AS runtime
 WORKDIR /app
 COPY --from=builder /app/target/release/slimcontroller /usr/local/bin
 COPY index.html /app/index.html
+ENV FRONTEND_INDEX=/app/index.html
 
 # I'm passing in the extra arguments as secrets with fly.io.
 # The corresponding environment variables are REDIS_URL and PASSWORD.

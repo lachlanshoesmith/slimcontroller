@@ -10,9 +10,16 @@ to run slimcontroller, you'll need to have a redis server running somewhere. spi
 
 note that redis is not persistent by default, so all shorthands created will be wiped when the server is restarted. it's up to you on how you handle this. [more info here](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/)
 
-then, `cargo build --release`, and run `./target/release/slimcontroller <SERVER_PORT> <REDIS_URL>`, where `SERVER_PORT` can be any `u8`, and `REDIS_URL` might be `127.0.0.1:6379` if you ran the above command.
+### docker
 
-the frontend can then be accessed via `localhost:SERVER_PORT`. if you want to host a different `index.html`, or it's in a different location, use the `-f <FILE_PATH>` flag.
+1. `docker build -t slimcontroller .`
+2. `docker run -p <SERVER_PORT>:<SERVER_PORT> -e PASSWORD=<PASSWORD> -e REDIS_URL=<REDIS_URL> slimcontroller`
+
+### from source
+
+1. `cargo build --release`
+2. `./target/release/slimcontroller <SERVER_PORT> <REDIS_URL>`, where `SERVER_PORT` can be any `u8`, and `REDIS_URL` might be `127.0.0.1:6379` if you ran the above command.
+3. the frontend can then be accessed via `localhost:SERVER_PORT`. if you want to host a different `index.html`, or it's in a different location, use the `-f <FILE_PATH>` flag.
 
 ## authentication
 
