@@ -7,11 +7,11 @@
 
 ## running
 
-to run slimcontroller, you'll need to have a redis server running somewhere. spinning up a redis stack server locally is easy:
+to run slimcontroller, you'll need to have a valkey/redis server running somewhere. spinning up a valkey server locally is easy:
 
-`docker run -d --name redis-stack-server -p 6379:6379 redis/redis-stack-server:latest`
+`docker run -d --name valkey -p 6379:6379 valkey/valkey:latest`
 
-note that redis is not persistent by default, so all shorthands created will be wiped when the server is restarted. it's up to you on how you handle this. [more info here](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/)
+note that valkey is not persistent by default, so all shorthands created will be wiped when the server is restarted. it's up to you on how you handle this. [more info here](https://valkey.io/topics/persistence/)
 
 ### docker
 
