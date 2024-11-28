@@ -26,12 +26,22 @@ struct Cli {
 
     #[arg(env, short, long, help = "Require this password to shorten new links")]
     password: Option<String>,
+
+    #[arg(
+        env,
+        short,
+        long,
+        help = "The index.html you want to serve. Defaults to ./index.html.",
+        name = "FILE_PATH"
+    )]
+    frontend_index: Option<String>,
 }
 
 struct AppState {
     db_conn: MultiplexedConnection,
     password: Option<String>,
     server_port: u16,
+    frontend_index: String,
 }
 
 #[derive(Deserialize)]
@@ -70,12 +80,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Ok(port) => format!("127.0.0.1:{port}"),
         Err(_) => cli.redis_url,
     };
+    let frontend_index = match cli.frontend_index {
+        Some(index) => index,
+        None => "index.html".to_string(),
+    };
 
     let db = redis::Client::open(format!("redis://{redis_url}"))?;
     let state = Arc::new(AppState {
         db_conn: db.get_multiplexed_async_connection().await?,
         password: cli.password,
         server_port,
+        frontend_index,
     });
 
     let app = Router::new()
@@ -92,7 +107,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn index(State(state): State<Arc<AppState>>) -> Html<String> {
-    let mut html = read_html_from_file("index.html");
+    let mut html = read_html_from_file(&state.frontend_index);
     let server_port = state.server_port;
     html = html.replace(
         "BACKEND_URL_HERE",

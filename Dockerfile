@@ -17,7 +17,9 @@ RUN cargo build --release --bin slimcontroller
 FROM debian:bookworm-slim AS runtime
 WORKDIR /app
 COPY --from=builder /app/target/release/slimcontroller /usr/local/bin
+COPY index.html /app/index.html
 
 # I'm passing in the extra arguments as secrets with fly.io.
 # The corresponding environment variables are REDIS_URL and PASSWORD.
-ENTRYPOINT ["/usr/local/bin/slimcontroller", "8080"]
+ENTRYPOINT ["/usr/local/bin/slimcontroller"]
+CMD ["8080"]

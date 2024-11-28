@@ -12,7 +12,7 @@ note that redis is not persistent by default, so all shorthands created will be 
 
 then, `cargo build --release`, and run `./target/release/slimcontroller <SERVER_PORT> <REDIS_URL>`, where `SERVER_PORT` can be any `u8`, and `REDIS_URL` might be `127.0.0.1:6379` if you ran the above command.
 
-the frontend can then be accessed via `localhost:SERVER_PORT`.
+the frontend can then be accessed via `localhost:SERVER_PORT`. if you want to host a different `index.html`, or it's in a different location, use the `-f <FILE_PATH>` flag.
 
 ## authentication
 
