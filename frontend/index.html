@@ -9,14 +9,10 @@
     <h1>slimcontroller</h1>
     <form id="form">
       <input type="text" name="url" placeholder="URL" required />
-      <input type="text" name="id" placeholder="ID" required />
+      <input type="text" name="id" placeholder="ID" />
       <button type="submit">Submit</button>
     </form>
     <p id="output"></p>
-    <p>
-      At some point IDs will could be randomly generated. But today is not that
-      day.
-    </p>
     <noscript>
       <p>
         ⚠️ Please enable JavaScript! Sorry, I'll remove this necessity at some
@@ -31,7 +27,12 @@
       e.preventDefault();
       const form = e.target;
       const url = form.url.value;
-      const id = form.id.value;
+      let id = form.id.value;
+
+      if (id === '') {
+        id = null;
+      }
+
       const res = await fetch('http://localhost:3005/add', {
         method: 'POST',
         headers: {
@@ -47,7 +48,7 @@
       output.innerText = res_text;
 
       if (res.status === 201) {
-        output.innerText = 'Created!';
+        output.innerText = 'Created! ' + res_text;
       }
     });
   </script>

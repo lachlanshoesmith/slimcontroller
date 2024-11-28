@@ -1,3 +1,4 @@
+use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use std::{error::Error, sync::Arc};
 
 use axum::{
@@ -24,7 +25,8 @@ struct AppState {
 }
 
 #[derive(Deserialize)]
-struct AddRedirectParams {
+struct AddRedirectBody {
+    #[serde(default)]
     id: Option<String>,
     url: String,
 }
@@ -70,15 +72,31 @@ async fn get_from_db(key: &str, db_conn: &mut MultiplexedConnection) -> Option<S
     }
 }
 
+async fn generate_random_string(db_conn: &mut MultiplexedConnection) -> String {
+    let mut db_conn = db_conn.clone();
+
+    loop {
+        let id: String = thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(30)
+            .map(char::from)
+            .collect();
+
+        if get_from_db(&id, &mut db_conn).await.is_none() {
+            return id;
+        }
+    }
+}
+
 async fn add_redirect(
     State(state): State<Arc<AppState>>,
-    Json(body): Json<AddRedirectParams>,
+    Json(body): Json<AddRedirectBody>,
 ) -> Response {
     let mut db_conn = state.db_conn.clone();
 
     let id = match body.id {
         Some(id) => id,
-        None => "random".to_string(),
+        None => generate_random_string(&mut db_conn).await,
     };
 
     if id == "add" {
@@ -91,8 +109,11 @@ async fn add_redirect(
             "Your proposed short URL is already in use.",
         )
             .into_response(),
-        None => match db_conn.set::<String, String, Value>(id, body.url).await {
-            Ok(_) => StatusCode::CREATED.into_response(),
+        None => match db_conn
+            .set::<String, String, Value>(id.clone(), body.url)
+            .await
+        {
+            Ok(_) => (StatusCode::CREATED, id).into_response(),
             Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
         },
     }
