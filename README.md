@@ -1,6 +1,9 @@
-# slimcontroller
-
-a stupidly simple URL shortener. or lengthener. redirectioner.
+<h1 align="center">slimcontroller 🧙</h1>
+<p align="center">a stupidly simple URL shortener. or lengthener. redirectioner.
+</p>
+<p align="center">
+<img width="300" src="/screenshot.jpg?raw=true">
+</p>
 
 ## running
 
