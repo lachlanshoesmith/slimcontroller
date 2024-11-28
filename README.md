@@ -28,7 +28,7 @@ any of the following may be supplied as environment variables.
 - `SERVER_PORT` can be any `u16`,
 - `REDIS_URL` might be `127.0.0.1:6379` if you ran the above command, and
 
-updating the `--admin-password` is also strongly advisable. see [authentication](#authentication) for more information.
+you should specify an `--admin-password`. see [authentication](#authentication) for more information.
 
 ## deployment
 
@@ -38,4 +38,4 @@ i recommend following the above docker instructions. don't forget to set the `--
 
 if you'd like, you can make individual set/delete operations require a password. just pass in the `--password <PASSWORD>` flag.
 
-you should provide an `--admin-password` when running slimcontroller. with this you can access the `/admin` panel. if you don't, it will be the same as the `--password`. if you provide neither, you will not be able to access the `/admin` panel at all.
+you should provide an `--admin-password` when running slimcontroller. with this you can access the `/admin` panel. if you don't provide one, your admin password will be the same as your `--password`. if you provide neither, you will not be able to access the `/admin` panel at all.
