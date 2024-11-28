@@ -258,7 +258,7 @@ async fn add_redirect(
     };
     let url = body.url;
 
-    let reserved_ids = ["add", "all"];
+    let reserved_ids = ["add", "all", "admin"];
     if reserved_ids.contains(&id.as_str()) {
         return (
             StatusCode::BAD_REQUEST,

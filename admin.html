@@ -69,6 +69,23 @@
       return element;
     };
 
+    const deleteRedirect = (id, key, row) => async () => {
+      const res = await fetch(`${BACKEND_URL}/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id,
+          key,
+          password: password.value,
+        }),
+      });
+      if (res.ok) {
+        row.remove();
+      }
+    };
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.target;
@@ -90,6 +107,9 @@
         createAndAppend('td', row, redirect.id);
         createAndAppend('td', row, redirect.url);
         createAndAppend('td', row, redirect.key);
+        const deleteCell = createAndAppend('td', row);
+        const deleteButton = createAndAppend('button', deleteCell, '❌');
+        deleteButton.onclick = deleteRedirect(redirect.id, redirect.key, row);
       }
     });
   </script>
@@ -131,6 +151,10 @@
     button:hover {
       cursor: pointer;
       background: #333;
+    }
+
+    td button {
+      background: none;
     }
 
     #output {
