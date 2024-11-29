@@ -39,22 +39,6 @@ struct Cli {
 
     #[arg(
         env,
-        long,
-        help = "The index.html you want to serve. Defaults to ./index.html.",
-        name = "INDEX_HTML_PATH"
-    )]
-    index: Option<String>,
-
-    #[arg(
-        env,
-        long,
-        help = "The admin.html you want to serve. Defaults to ./admin.html.",
-        name = "ADMIN_HTML_PATH"
-    )]
-    admin: Option<String>,
-
-    #[arg(
-        env,
         short,
         long,
         help = "The password for the admin page. Defaults to --password if it is set, otherwise None."

@@ -22,7 +22,7 @@ note that valkey is not persistent by default, so all shorthands created will be
 
 1. `cargo build --release`
 2. `./target/release/slimcontroller <SERVER_PORT> <REDIS_URL>`
-3. the frontend can then be accessed via `localhost:SERVER_PORT`. if you want to host a different `index.html`, or it's in a different location, use the `--index <FILE_PATH>` flag. the same may be said for `--admin`.
+3. the frontend can then be accessed via `localhost:SERVER_PORT`.
 
 ### mandatory arguments
 
