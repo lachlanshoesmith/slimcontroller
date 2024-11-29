@@ -1,10 +1,11 @@
+use askama_axum::Template;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
-use std::{error::Error, fs::File, io::Read, sync::Arc};
+use std::{error::Error, sync::Arc};
 
 use axum::{
     extract::{Json, Path, Query, State},
     http::{HeaderValue, StatusCode},
-    response::{Html, IntoResponse, Response},
+    response::{IntoResponse, Response},
     routing::{delete, get, post},
     Router,
 };
@@ -65,8 +66,6 @@ struct AppState {
     db_conn: MultiplexedConnection,
     password: Option<String>,
     server_hostname: String,
-    frontend_index: String,
-    frontend_admin: String,
     admin_password: Option<String>,
 }
 
@@ -122,6 +121,19 @@ impl FromRedisValue for Redirect {
     }
 }
 
+#[derive(Template)]
+#[template(path = "index/index.html")]
+struct IndexTemplate<'a> {
+    backend_url: &'a str,
+    authentication_required: bool,
+}
+
+#[derive(Template)]
+#[template(path = "admin/admin.html")]
+struct AdminTemplate<'a> {
+    backend_url: &'a str,
+}
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
@@ -134,14 +146,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Some(hostname) => hostname,
         None => format!("http://localhost:{server_port}").to_string(),
     };
-    let frontend_index = match cli.index {
-        Some(index) => index,
-        None => "index.html".to_string(),
-    };
-    let frontend_admin = match cli.admin {
-        Some(index) => index,
-        None => "admin.html".to_string(),
-    };
     let password = cli.password;
     let admin_password = match cli.admin_password {
         Some(admin_password) => Some(admin_password),
@@ -153,8 +157,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         db_conn: db.get_multiplexed_async_connection().await?,
         password,
         server_hostname,
-        frontend_index,
-        frontend_admin,
         admin_password,
     });
 
@@ -175,31 +177,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-async fn index(State(state): State<Arc<AppState>>) -> Html<String> {
-    let mut html = read_html_from_file(&state.frontend_index);
-    let hostname = state.server_hostname.clone();
-    html = html.replace("BACKEND_URL_HERE", &hostname);
-    if state.password.is_none() {
-        html = html.replace("id=\"authentication\"", "class=\"hidden\"");
+async fn index(State(state): State<Arc<AppState>>) -> Response {
+    IndexTemplate {
+        backend_url: &state.server_hostname.clone(),
+        authentication_required: state.password.is_some(),
     }
-    Html(html)
+    .into_response()
 }
 
 async fn admin(State(state): State<Arc<AppState>>) -> Response {
     if state.admin_password.is_none() {
         return StatusCode::UNAUTHORIZED.into_response();
     }
-    let mut html = read_html_from_file(&state.frontend_admin);
-    let hostname = state.server_hostname.clone();
-    html = html.replace("BACKEND_URL_HERE", &hostname);
-    Html(html).into_response()
-}
-
-fn read_html_from_file(path: &str) -> String {
-    let mut file = File::open(path).unwrap();
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).unwrap();
-    contents
+    AdminTemplate {
+        backend_url: &state.server_hostname,
+    }
+    .into_response()
 }
 
 async fn redirect_to_id(Path(path): Path<String>, State(state): State<Arc<AppState>>) -> Response {

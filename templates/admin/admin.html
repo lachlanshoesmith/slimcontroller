@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>slimcontroller</title>
+  </head>
+  <body>
+    <header>
+      <h1>slimcontroller 🧙</h1>
+      <h2>admin panel</h2>
+    </header>
+    <main>
+      <div id="authentication">
+        <section>
+          <h2>authentication 🔑</h2>
+          <p>you need to log in to access this page.</p>
+          <p>
+            <strong>note:</strong> the password for this page may be different
+            to the one used to edit short links. contact your slimcontroller
+            instance's administrators for details.
+          </p>
+          <form id="form">
+            <input
+              type="password"
+              name="password"
+              placeholder="Password"
+              required
+              id="password"
+            />
+            <button type="submit">Submit</button>
+          </form>
+          <p id="authentication-output"></p>
+        </section>
+      </div>
+      <div id="authenticated-content">
+        <h2>all links 🔗</h2>
+        <table id="redirects_table">
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>points to</th>
+              <th>key</th>
+              <th>delete</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+      <noscript>
+        <p>⚠️ Please enable JavaScript!</p>
+      </noscript>
+    </main>
+    <footer>
+      <p>by <a href="https://lachlan.codes">Lachlan Shoesmith</a></p>
+      <p>
+        slimcontroller is on
+        <a href="https://github.com/lachlanshoesmith/slimcontroller">github</a>!
+      </p>
+    </footer>
+  </body>
+  {% include "script.html" %} {% include "../styles.html" %}
+</html>

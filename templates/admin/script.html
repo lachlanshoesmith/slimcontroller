@@ -1,0 +1,74 @@
+<script>
+  const form = document.getElementById('form');
+  const password = document.getElementById('password');
+  const redirects_table = document.getElementById('redirects_table');
+  const BACKEND_URL = '{{ backend_url }}';
+
+  const createAndAppend = (tag, parent, text) => {
+    const element = document.createElement(tag);
+    if (text) {
+      element.innerText = text;
+    }
+    parent.appendChild(element);
+    return element;
+  };
+
+  const deleteRedirect = (id, key, row) => async () => {
+    const res = await fetch(`${BACKEND_URL}/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id,
+        key,
+        password: password.value,
+      }),
+    });
+    if (res.ok) {
+      row.remove();
+    }
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    let password_val = password.value;
+
+    const res = await fetch(
+      `${BACKEND_URL}/all?` +
+        new URLSearchParams({
+          password: password_val,
+        }),
+      {
+        method: 'GET',
+      }
+    );
+
+    if (!res.ok) {
+      const output = document.getElementById('authentication-output');
+      output.style.display = 'block';
+      output.innerText = 'invalid password';
+      return;
+    }
+
+    const redirects = await res.json();
+
+    for (const redirect of redirects) {
+      const row = createAndAppend('tr', redirects_table);
+      createAndAppend('td', row, redirect.id);
+      createAndAppend('td', row, redirect.url);
+      createAndAppend('td', row, redirect.key);
+      const deleteCell = createAndAppend('td', row);
+      const deleteButton = createAndAppend('button', deleteCell, '❌');
+      deleteButton.onclick = deleteRedirect(redirect.id, redirect.key, row);
+    }
+
+    const authentication = document.getElementById('authentication');
+    authentication.style.display = 'none';
+    const authenticatedContent = document.getElementById(
+      'authenticated-content'
+    );
+    authenticatedContent.style.display = 'block';
+  });
+</script>

@@ -1,6 +1,6 @@
 [package]
 name = "slimcontroller"
-version = "1.1.2"
+version = "1.2.0"
 edition = "2021"
 
 [dependencies]
@@ -12,3 +12,5 @@ serde = { version = "1.0.215", features = ["derive"] }
 tower = "0.5.1"
 tower-http = { version = "0.6.2", features = ["cors"] }
 rand = "0.8.5"
+askama_axum = "0.4.0"
+askama = "0.12.1"

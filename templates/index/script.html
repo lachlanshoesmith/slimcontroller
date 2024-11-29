@@ -1,0 +1,70 @@
+<script>
+  const form = document.getElementById('form');
+  const password = document.getElementById('password');
+  const BACKEND_URL = '{{ backend_url }}';
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const url = form.url.value;
+    let id = form.id.value;
+
+    if (id === '') {
+      id = null;
+    }
+
+    let password_val = password.value;
+
+    if (password_val === '') {
+      password_val = null;
+    }
+
+    const res = await fetch(`${BACKEND_URL}/add`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url, id, password: password_val }),
+    });
+
+    const res_json = await res.json();
+
+    const output = document.getElementById('output');
+    output.style.display = 'block';
+
+    if (res.status === 201) {
+      output.innerText = `Created! Your URL is ${BACKEND_URL}/${res_json.id}.
+    You'll need this key to delete this short link: ${res_json.key}`;
+    } else {
+      output.innerText = res_json.message;
+    }
+  });
+
+  const deleteForm = document.getElementById('delete-form');
+  deleteForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const id = form.id.value;
+    const key = form.key.value;
+
+    let password_val = password.value;
+
+    if (password_val === '') {
+      password_val = null;
+    }
+
+    const res = await fetch(`${BACKEND_URL}/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id, key, password: password_val }),
+    });
+
+    const res_json = await res.json();
+
+    const output = document.getElementById('delete-output');
+    output.style.display = 'block';
+    output.innerText = res_json.message;
+  });
+</script>

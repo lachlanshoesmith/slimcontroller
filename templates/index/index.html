@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>slimcontroller</title>
+  </head>
+  <body>
+    <header>
+      <h1>slimcontroller 🧙</h1>
+    </header>
+    <main>
+      <section>
+        <h2>create a short link 🔗</h2>
+        <form id="form">
+          <input type="text" name="url" placeholder="URL" required />
+          <input type="text" name="id" placeholder="ID" />
+          <button type="submit">Submit</button>
+        </form>
+        <p id="output"></p>
+      </section>
+      <section>
+        <h2>delete a short link 🗑️</h2>
+        <form id="delete-form">
+          <input type="text" name="id" placeholder="ID" required />
+          <input type="text" name="key" placeholder="Key" required />
+          <button type="submit">Submit</button>
+        </form>
+        <p id="delete-output"></p>
+      </section>
+      {% if authentication_required %}
+      <section>
+        <h2>authentication 🔑</h2>
+        <p>
+          this slimcontroller instance requires a password to perform the above
+          operations.
+        </p>
+        <input
+          type="password"
+          name="password"
+          placeholder="Password"
+          id="password"
+        />
+      </section>
+      {%- endif %}
+      <noscript>
+        <p>
+          ⚠️ Please enable JavaScript! Sorry, I'll remove this necessity at some
+          point.
+        </p>
+      </noscript>
+    </main>
+    <footer>
+      <p>by <a href="https://lachlan.codes">Lachlan Shoesmith</a></p>
+      <p>
+        slimcontroller is on
+        <a href="https://github.com/lachlanshoesmith/slimcontroller">github</a>!
+      </p>
+    </footer>
+  </body>
+  {% include "script.html" %} {% include "../styles.html" %}
+</html>
